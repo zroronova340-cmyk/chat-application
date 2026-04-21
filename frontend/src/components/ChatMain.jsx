@@ -16,6 +16,8 @@ const ChatMain = ({ user, onLogout }) => {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [networkAddress, setNetworkAddress] = useState('');
+  const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [isPrivacyMode, setIsPrivacyMode] = useState(true);
   const [isBlurred, setIsBlurred] = useState(false);
