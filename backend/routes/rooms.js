@@ -6,14 +6,19 @@ const auth = require('../middleware/auth');
 // Create a room
 router.post('/', auth, async (req, res) => {
     try {
-        const { name } = req.body;
-        const room = new Room({
+        const { name, initialMembers } = req.body;
+        
+        if (!initialMembers || initialMembers.length === 0) {
+            return res.status(400).json({ message: 'Must invite at least 1 friend to form a group' });
+        }
+
+        const newRoom = new Room({
             name,
             creator: req.userData.userId,
-            members: [req.userData.userId]
+            members: [req.userData.userId, ...initialMembers]
         });
-        await room.save();
-        res.status(201).json(room);
+        await newRoom.save();
+        res.status(201).json(newRoom);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

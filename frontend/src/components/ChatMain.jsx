@@ -22,6 +22,7 @@ const ChatMain = ({ user, onLogout }) => {
   const [showInviteFriend, setShowInviteFriend] = useState(false);
   const [inviteUsername, setInviteUsername] = useState('');
   const [newRoomName, setNewRoomName] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState([]); // New state for group creation
   const [isPrivacyMode, setIsPrivacyMode] = useState(true);
   const [isBlurred, setIsBlurred] = useState(false);
   const [showSecurityPanel, setShowSecurityPanel] = useState(false);
@@ -196,17 +197,27 @@ const ChatMain = ({ user, onLogout }) => {
   };
 
   const createRoom = async () => {
-      if (!newRoomName) return;
+      if (!newRoomName || selectedMembers.length === 0) return;
       try {
-          await axios.post('/api/rooms', { name: newRoomName }, {
+          await axios.post('/api/rooms', { 
+            name: newRoomName,
+            initialMembers: selectedMembers 
+          }, {
               headers: { Authorization: `Bearer ${user.token}` }
           });
           setNewRoomName('');
+          setSelectedMembers([]);
           setShowCreateRoom(false);
           fetchData();
       } catch (err) {
           console.error(err);
       }
+  };
+
+  const toggleMemberSelection = (userId) => {
+    setSelectedMembers(prev => 
+        prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
   };
 
   const terminateRoom = async (roomId) => {
@@ -507,11 +518,31 @@ const ChatMain = ({ user, onLogout }) => {
           {showCreateRoom && (
               <div className="modal-overlay">
                   <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="modal-content glass">
-                      <h3>Create New Room</h3>
-                      <input type="text" placeholder="Room Name" className="input-field" value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} />
+                      <h3>Create New Group</h3>
+                      <p className="modal-subtitle">Add at least 1 friend to start the group matrix.</p>
+                      
+                      <input type="text" placeholder="Group Name" className="input-field" value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} />
+                      
+                      <div className="member-selection-list">
+                          <p className="list-title">Select Friends</p>
+                          {users.map(u => (
+                              <div key={u._id} className={`selection-item ${selectedMembers.includes(u._id) ? 'selected' : ''}`} onClick={() => toggleMemberSelection(u._id)}>
+                                  <div className="checkbox">{selectedMembers.includes(u._id) && <div className="check-dot"></div>}</div>
+                                  <span>{u.username}</span>
+                              </div>
+                          ))}
+                          {users.length === 0 && <p className="empty-msg">You need friends to create a group!</p>}
+                      </div>
+
                       <div className="modal-actions">
-                          <button onClick={() => setShowCreateRoom(false)} className="btn">Cancel</button>
-                          <button onClick={createRoom} className="btn btn-primary">Create</button>
+                          <button onClick={() => { setShowCreateRoom(false); setSelectedMembers([]); }} className="btn">Cancel</button>
+                          <button 
+                            onClick={createRoom} 
+                            className="btn btn-primary"
+                            disabled={!newRoomName || selectedMembers.length === 0}
+                          >
+                            Initialize Group
+                          </button>
                       </div>
                   </motion.div>
               </div>
