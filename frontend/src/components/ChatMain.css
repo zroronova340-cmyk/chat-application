@@ -345,6 +345,36 @@
   font-size: 0.95rem;
   line-height: 1.5;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.bubble-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.2rem;
+}
+
+.save-msg-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.save-msg-btn:hover {
+    color: var(--accent);
+}
+
+.save-msg-btn.saved {
+    color: #fbbf24; /* Star gold */
+    opacity: 1;
 }
 
 .sent .message-bubble {

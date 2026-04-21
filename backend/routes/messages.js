@@ -31,16 +31,49 @@ router.get('/:userId', auth, async (req, res) => {
 
 router.post('/', auth, upload.single('file'), async (req, res) => {
     try {
-        const { receiverId, content, type, isEncrypted } = req.body;
+        const { receiverId, roomId, content, type, isEncrypted } = req.body;
+        
+        // Default to disappearing after 24 hours
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+
         const message = new Message({
             sender: req.userData.userId,
-            receiver: receiverId,
+            receiver: receiverId || null,
+            room: roomId || null,
             content: req.file ? `/uploads/${req.file.filename}` : content,
             type: req.file ? 'image' : type,
-            isEncrypted
+            isEncrypted,
+            expiresAt
         });
         await message.save();
         res.status(201).json(message);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Save a message (prevent it from disappearing)
+router.put('/save/:messageId', auth, async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.messageId);
+        if (!message) return res.status(404).json({ message: 'Message not found' });
+
+        // Toggle saved status
+        message.isSaved = !message.isSaved;
+        
+        // If saved, remove the expiration timer
+        if (message.isSaved) {
+            message.expiresAt = undefined; 
+        } else {
+            // If unsaved, set a new 24hr timer from current time
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + 24);
+            message.expiresAt = expiresAt;
+        }
+
+        await message.save();
+        res.status(200).json(message);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

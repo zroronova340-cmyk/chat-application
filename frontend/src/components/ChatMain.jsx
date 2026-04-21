@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, LogOut, Search, User, MoreVertical, Paperclip, Smile, Image as ImageIcon, Plus, Users, Trash2, Globe, Shield, Lock, EyeOff, Bell, BellOff } from 'lucide-react';
+import { Send, LogOut, Search, User, MoreVertical, Paperclip, Smile, Image as ImageIcon, Plus, Users, Trash2, Globe, Shield, Lock, EyeOff, Bell, BellOff, Bookmark, Star } from 'lucide-react';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
 import './ChatMain.css';
 
@@ -242,6 +242,17 @@ const ChatMain = ({ user, onLogout }) => {
     if (file) sendMessage(null, file);
   };
 
+  const toggleSaveMessage = async (msgId) => {
+    try {
+        await axios.put(`/api/messages/save/${msgId}`, {}, {
+            headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setMessages(prev => prev.map(m => m._id === msgId ? { ...m, isSaved: !m.isSaved } : m));
+    } catch (err) {
+        console.error(err);
+    }
+  };
+
   const handleTyping = (typing) => {
     setIsTyping(typing);
     if (selectedUser) {
@@ -368,7 +379,16 @@ const ChatMain = ({ user, onLogout }) => {
               {messages.map((msg, index) => (
                 <div key={index} className={`message-wrapper ${msg.senderId === user.userId || msg.sender === user.userId ? 'sent' : 'received'}`}>
                   <div className="message-bubble">
-                    <span className="sender-name">{msg.senderId === user.userId ? 'You' : (users.find(u => u._id === msg.senderId)?.username || 'Other')}</span>
+                    <div className="bubble-header">
+                        <span className="sender-name">{msg.senderId === user.userId ? 'You' : (users.find(u => u._id === msg.senderId)?.username || 'Other')}</span>
+                        <button 
+                            className={`save-msg-btn ${msg.isSaved ? 'saved' : ''}`}
+                            onClick={() => toggleSaveMessage(msg._id)}
+                            title={msg.isSaved ? 'Saved permanently' : 'Disappears in 24h. Click to save.'}
+                        >
+                            {msg.isSaved ? <Star size={12} fill="currentColor" /> : <Bookmark size={12} />}
+                        </button>
+                    </div>
                     {msg.type === 'image' ? (
                         <img src={msg.content} alt="shared" className="shared-img" />
                     ) : (

@@ -7,7 +7,12 @@ const messageSchema = new mongoose.Schema({
     content: { type: String, required: true },
     type: { type: String, enum: ['text', 'image', 'file'], default: 'text' },
     isEncrypted: { type: Boolean, default: false },
-    status: { type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' }
+    isSaved: { type: Boolean, default: false },
+    status: { type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' },
+    expiresAt: { type: Date }
 }, { timestamps: true });
+
+// TTL Index: Deletes document when current time > expiresAt
+messageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('Message', messageSchema);
