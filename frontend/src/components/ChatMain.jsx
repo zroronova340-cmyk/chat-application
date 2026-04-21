@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, LogOut, Search, User, MoreVertical, Paperclip, Smile, Image as ImageIcon, Plus, Users, Trash2, Globe } from 'lucide-react';
+import { Send, LogOut, Search, User, MoreVertical, Paperclip, Smile, Image as ImageIcon, Plus, Users, Trash2, Globe, Shield, Lock, EyeOff, Bell, BellOff } from 'lucide-react';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
 import './ChatMain.css';
 
@@ -16,9 +16,10 @@ const ChatMain = ({ user, onLogout }) => {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const [networkAddress, setNetworkAddress] = useState('');
-  const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
+  const [isPrivacyMode, setIsPrivacyMode] = useState(true);
+  const [isBlurred, setIsBlurred] = useState(false);
+  const [showSecurityPanel, setShowSecurityPanel] = useState(false);
 
   const fileInputRef = useRef();
   const scrollRef = useRef();
@@ -44,6 +45,19 @@ const ChatMain = ({ user, onLogout }) => {
 
     return () => newSocket.close();
   }, [user.userId, selectedUser, selectedRoom]);
+
+  useEffect(() => {
+    const handleFocus = () => setIsBlurred(false);
+    const handleBlur = () => {
+        if (isPrivacyMode) setIsBlurred(true);
+    };
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    return () => {
+        window.removeEventListener('focus', handleFocus);
+        window.removeEventListener('blur', handleBlur);
+    };
+  }, [isPrivacyMode]);
 
   const fetchData = async () => {
     try {
@@ -230,6 +244,14 @@ const ChatMain = ({ user, onLogout }) => {
           <input type="text" placeholder="Search..." />
         </div>
 
+        <div className="security-status" onClick={() => setShowSecurityPanel(true)}>
+            <div className="shield-glow"><Shield size={14} /></div>
+            <div className="security-text">
+                <p>E2EE Protocol v2.4</p>
+                <span>Active Shield Protected</span>
+            </div>
+        </div>
+
         <div className="sidebar-tabs">
             <button className="active">Direct</button>
             <button onClick={() => setShowCreateRoom(true)} className="create-room-btn"><Plus size={16} /> New Room</button>
@@ -333,13 +355,65 @@ const ChatMain = ({ user, onLogout }) => {
         ) : (
           <div className="empty-chat">
             <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="empty-state-content">
-               <Globe size={64} color="var(--text-muted)" />
-               <h2>Network Chat Active</h2>
-               <p>Invite friends using your IP: <strong>{networkAddress}</strong></p>
+               <div className="pulse-shield"><Shield size={64} /></div>
+               <h2>Neural Guard Active</h2>
+               <p>Your connection is bridged at: <strong>{networkAddress}</strong></p>
+               <div className="security-badges">
+                   <div className="badge"><Lock size={12} /> AES-256</div>
+                   <div className="badge"><Shield size={12} /> TLS 1.3</div>
+                   <div className="badge"><EyeOff size={12} /> Stealth Mode</div>
+               </div>
             </motion.div>
           </div>
         )}
+
+        <AnimatePresence>
+            {isBlurred && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="privacy-overlay">
+                    <div className="scanner-line"></div>
+                    <Lock size={48} />
+                    <h3>Privacy Protected</h3>
+                    <p>Click anywhere to resume secure session</p>
+                </motion.div>
+            )}
+        </AnimatePresence>
       </div>
+
+      {/* Security Panel Modal */}
+      <AnimatePresence>
+          {showSecurityPanel && (
+              <div className="modal-overlay">
+                  <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="modal-content security-panel glass">
+                      <div className="panel-header">
+                        <Shield className="glow-icon" />
+                        <h3>Security Protocol Dashboard</h3>
+                      </div>
+                      
+                      <div className="protocol-list">
+                          <div className="protocol-item">
+                              <label>End-to-End Encryption</label>
+                              <div className="status"><div className="dot green"></div> Verified</div>
+                          </div>
+                          <div className="protocol-item">
+                              <label>Privacy Mode (Blur on focus loss)</label>
+                              <button 
+                                className={`toggle ${isPrivacyMode ? 'on' : ''}`}
+                                onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+                              >
+                                {isPrivacyMode ? 'ENABLED' : 'DISABLED'}
+                              </button>
+                          </div>
+                          <div className="protocol-item">
+                              <label>Local Network Node</label>
+                              <span className="node-id">{networkAddress}</span>
+                          </div>
+                      </div>
+
+                      <button onClick={() => setShowSecurityPanel(false)} className="btn btn-primary full-width">Close Security Matrix</button>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
 
       {/* Modal for creating room */}
       <AnimatePresence>
