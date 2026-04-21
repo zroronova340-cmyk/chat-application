@@ -13,7 +13,7 @@ const Auth = ({ onLogin }) => {
     setError('');
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
     try {
-      const { data } = await axios.post(`http://localhost:5000${endpoint}`, formData);
+      const { data } = await axios.post(endpoint, formData);
       if (isLogin) {
         onLogin(data);
       } else {

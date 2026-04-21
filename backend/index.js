@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
@@ -39,6 +40,14 @@ app.get('/api/network', (req, res) => {
         }
     }
     res.json({ address });
+});
+
+// Serve Frontend Static Files (for production)
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+    }
 });
 
 // Socket.IO Logic

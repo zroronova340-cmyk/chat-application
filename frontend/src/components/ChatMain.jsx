@@ -48,9 +48,9 @@ const ChatMain = ({ user, onLogout }) => {
   const fetchData = async () => {
     try {
       const [usersRes, roomsRes, netRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/auth/users'),
-        axios.get('http://localhost:5000/api/rooms', { headers: { Authorization: `Bearer ${user.token}` } }),
-        axios.get('http://localhost:5000/api/network')
+        axios.get('/api/auth/users'),
+        axios.get('/api/rooms', { headers: { Authorization: `Bearer ${user.token}` } }),
+        axios.get('/api/network')
       ]);
       setUsers(usersRes.data.filter(u => u._id !== user.userId));
       setRooms(roomsRes.data);
@@ -69,8 +69,8 @@ const ChatMain = ({ user, onLogout }) => {
       const fetchHistory = async () => {
         try {
           const endpoint = selectedUser 
-            ? `http://localhost:5000/api/messages/${selectedUser._id}`
-            : `http://localhost:5000/api/messages/room/${selectedRoom._id}`;
+            ? `/api/messages/${selectedUser._id}`
+            : `/api/messages/room/${selectedRoom._id}`;
           
           // Note: need to add room history route in backend too, but for now we'll skip or use a generic one
           // For simplicity in this demo, we'll just fetch user messages or clear
