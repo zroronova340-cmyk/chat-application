@@ -8,8 +8,9 @@ import './ChatMain.css';
 
 const ChatMain = ({ user, onLogout }) => {
   const [socket, setSocket] = useState(null);
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([]); // This will now represent "Friends"
   const [rooms, setRooms] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -18,6 +19,8 @@ const ChatMain = ({ user, onLogout }) => {
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [networkAddress, setNetworkAddress] = useState('');
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [showInviteFriend, setShowInviteFriend] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState('');
   const [newRoomName, setNewRoomName] = useState('');
   const [isPrivacyMode, setIsPrivacyMode] = useState(true);
   const [isBlurred, setIsBlurred] = useState(false);
@@ -25,6 +28,19 @@ const ChatMain = ({ user, onLogout }) => {
 
   const fileInputRef = useRef();
   const scrollRef = useRef();
+
+  useEffect(() => {
+    const handleFocus = () => setIsBlurred(false);
+    const handleBlur = () => {
+        if (isPrivacyMode) setIsBlurred(true);
+    };
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    return () => {
+        window.removeEventListener('focus', handleFocus);
+        window.removeEventListener('blur', handleBlur);
+    };
+  }, [isPrivacyMode]);
 
   useEffect(() => {
     const newSocket = io();
@@ -48,29 +64,18 @@ const ChatMain = ({ user, onLogout }) => {
     return () => newSocket.close();
   }, [user.userId, selectedUser, selectedRoom]);
 
-  useEffect(() => {
-    const handleFocus = () => setIsBlurred(false);
-    const handleBlur = () => {
-        if (isPrivacyMode) setIsBlurred(true);
-    };
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-        window.removeEventListener('focus', handleFocus);
-        window.removeEventListener('blur', handleBlur);
-    };
-  }, [isPrivacyMode]);
-
   const fetchData = async () => {
     try {
-      const [usersRes, roomsRes, netRes] = await Promise.all([
-        axios.get('/api/auth/users'),
+      const [friendsRes, roomsRes, netRes, pendingRes] = await Promise.all([
+        axios.get('/api/friends/list', { headers: { Authorization: `Bearer ${user.token}` } }),
         axios.get('/api/rooms', { headers: { Authorization: `Bearer ${user.token}` } }),
-        axios.get('/api/network')
+        axios.get('/api/network'),
+        axios.get('/api/friends/pending', { headers: { Authorization: `Bearer ${user.token}` } })
       ]);
-      setUsers(usersRes.data.filter(u => u._id !== user.userId));
+      setUsers(friendsRes.data);
       setRooms(roomsRes.data);
       setNetworkAddress(netRes.data.address);
+      setPendingRequests(pendingRes.data);
     } catch (err) {
       console.error(err);
     }
@@ -164,6 +169,32 @@ const ChatMain = ({ user, onLogout }) => {
     handleTyping(false);
   };
 
+  const inviteFriend = async () => {
+    if (!inviteUsername) return;
+    try {
+        await axios.post('/api/friends/request', { receiverUsername: inviteUsername }, {
+            headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setInviteUsername('');
+        setShowInviteFriend(false);
+        fetchData();
+        alert('Invitation sent!');
+    } catch (err) {
+        alert(err.response?.data?.message || 'Error sending invitation');
+    }
+  };
+
+  const acceptInvite = async (requestId) => {
+    try {
+        await axios.put(`/api/friends/accept/${requestId}`, {}, {
+            headers: { Authorization: `Bearer ${user.token}` }
+        });
+        fetchData();
+    } catch (err) {
+        console.error(err);
+    }
+  };
+
   const createRoom = async () => {
       if (!newRoomName) return;
       try {
@@ -255,11 +286,27 @@ const ChatMain = ({ user, onLogout }) => {
         </div>
 
         <div className="sidebar-tabs">
-            <button className="active">Direct</button>
-            <button onClick={() => setShowCreateRoom(true)} className="create-room-btn"><Plus size={16} /> New Room</button>
+            <button className="active">Contacts</button>
+            <button onClick={() => setShowInviteFriend(true)} className="create-room-btn"><Plus size={16} /> Add Friend</button>
         </div>
 
         <div className="users-list">
+          {pendingRequests.length > 0 && (
+              <>
+                <p className="list-title">Pending Invitations</p>
+                {pendingRequests.map(req => (
+                    <div key={req._id} className="user-item pending">
+                        <div className="avatar mini">{req.sender.username[0].toUpperCase()}</div>
+                        <div className="user-details">
+                            <p className="username">{req.sender.username}</p>
+                            <p className="last-msg">Incoming Request</p>
+                        </div>
+                        <button onClick={() => acceptInvite(req._id)} className="accept-btn">Accept</button>
+                    </div>
+                ))}
+              </>
+          )}
+
           <p className="list-title">Rooms</p>
           {rooms.map((r) => (
             <div 
@@ -278,7 +325,7 @@ const ChatMain = ({ user, onLogout }) => {
             </div>
           ))}
 
-          <p className="list-title">Contacts</p>
+          <p className="list-title">Friends</p>
           {users.map((u) => (
             <div 
               key={u._id} 
@@ -292,6 +339,7 @@ const ChatMain = ({ user, onLogout }) => {
               </div>
             </div>
           ))}
+          {users.length === 0 && <p className="empty-list-msg">No friends yet. Invite someone!</p>}
         </div>
       </div>
 
@@ -412,6 +460,23 @@ const ChatMain = ({ user, onLogout }) => {
                       </div>
 
                       <button onClick={() => setShowSecurityPanel(false)} className="btn btn-primary full-width">Close Security Matrix</button>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
+
+      {/* Modal for inviting friend */}
+      <AnimatePresence>
+          {showInviteFriend && (
+              <div className="modal-overlay">
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="modal-content glass">
+                      <h3>Find User</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>Enter the exact username of the person you want to chat with.</p>
+                      <input type="text" placeholder="Username" className="input-field" value={inviteUsername} onChange={(e) => setInviteUsername(e.target.value)} />
+                      <div className="modal-actions">
+                          <button onClick={() => setShowInviteFriend(false)} className="btn">Cancel</button>
+                          <button onClick={inviteFriend} className="btn btn-primary">Send Invitation</button>
+                      </div>
                   </motion.div>
               </div>
           )}

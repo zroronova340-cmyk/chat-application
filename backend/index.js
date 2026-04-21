@@ -9,6 +9,7 @@ const os = require('os');
 const authRoutes = require('./routes/auth');
 const messageRoutes = require('./routes/messages');
 const roomRoutes = require('./routes/rooms');
+const friendRoutes = require('./routes/friends');
 
 const app = express();
 const server = http.createServer(app);
@@ -30,6 +31,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/friends', friendRoutes);
 
 app.get('/api/network', (req, res) => {
     const interfaces = os.networkInterfaces();

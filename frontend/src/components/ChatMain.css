@@ -243,6 +243,35 @@
   margin-top: 0.2rem;
 }
 
+.accept-btn {
+    background: var(--success);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+
+.accept-btn:hover {
+    filter: brightness(1.2);
+}
+
+.user-item.pending {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.empty-list-msg {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 2rem;
+    font-style: italic;
+}
+
 /* Chat Area Styling */
 .chat-area {
   flex: 1;
