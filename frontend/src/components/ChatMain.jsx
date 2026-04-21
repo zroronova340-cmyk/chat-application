@@ -24,7 +24,7 @@ const ChatMain = ({ user, onLogout }) => {
   const scrollRef = useRef();
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io();
     setSocket(newSocket);
     newSocket.emit('join', user.userId);
 
@@ -134,7 +134,7 @@ const ChatMain = ({ user, onLogout }) => {
         formData.append('type', 'text');
       }
 
-      await axios.post('http://localhost:5000/api/messages', formData, {
+      await axios.post('/api/messages', formData, {
         headers: { 
             Authorization: `Bearer ${user.token}`,
             'Content-Type': 'multipart/form-data'
@@ -151,7 +151,7 @@ const ChatMain = ({ user, onLogout }) => {
   const createRoom = async () => {
       if (!newRoomName) return;
       try {
-          await axios.post('http://localhost:5000/api/rooms', { name: newRoomName }, {
+          await axios.post('/api/rooms', { name: newRoomName }, {
               headers: { Authorization: `Bearer ${user.token}` }
           });
           setNewRoomName('');
@@ -165,7 +165,7 @@ const ChatMain = ({ user, onLogout }) => {
   const terminateRoom = async (roomId) => {
       if (!window.confirm('Terminate this room?')) return;
       try {
-          await axios.delete(`http://localhost:5000/api/rooms/${roomId}`, {
+          await axios.delete(`/api/rooms/${roomId}`, {
               headers: { Authorization: `Bearer ${user.token}` }
           });
           setSelectedRoom(null);
@@ -181,7 +181,7 @@ const ChatMain = ({ user, onLogout }) => {
       try {
           const u = users.find(usr => usr.username === username);
           if (!u) return alert('User not found');
-          await axios.post(`http://localhost:5000/api/rooms/${roomId}/invite`, { userId: u._id }, {
+          await axios.post(`/api/rooms/${roomId}/invite`, { userId: u._id }, {
               headers: { Authorization: `Bearer ${user.token}` }
           });
           alert('User invited!');
@@ -298,7 +298,7 @@ const ChatMain = ({ user, onLogout }) => {
                   <div className="message-bubble">
                     <span className="sender-name">{msg.senderId === user.userId ? 'You' : (users.find(u => u._id === msg.senderId)?.username || 'Other')}</span>
                     {msg.type === 'image' ? (
-                        <img src={`http://localhost:5000${msg.content}`} alt="shared" className="shared-img" />
+                        <img src={msg.content} alt="shared" className="shared-img" />
                     ) : (
                         msg.content
                     )}
